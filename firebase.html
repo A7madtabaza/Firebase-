@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Task</title>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
+    import { getDatabase, ref, push, set, remove, update, get, child } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+
+    // Firebase configuration
+   const firebaseConfig = {
+    apiKey: "AIzaSyBQVZ6Br_1Z1ViiOWV8PFfaCCsU4iihQ-U",
+    authDomain: "first-project-b8ded.firebaseapp.com",
+    databaseURL: "https://first-project-b8ded-default-rtdb.firebaseio.com",
+    projectId: "first-project-b8ded",
+    storageBucket: "first-project-b8ded.firebasestorage.app",
+    messagingSenderId: "922486708777",
+    appId: "1:922486708777:web:3d83a785a234a2a4bcda38",
+    measurementId: "G-MN4FCPS8KJ"
+  };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // Add Product
+    document.getElementById("add-product-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("product-title").value;
+      const description = document.getElementById("product-description").value;
+      const price = parseFloat(document.getElementById("product-price").value);
+      const image = document.getElementById("product-image").value;
+
+      try {
+        const newProductRef = push(ref(db, "products"));
+        await set(newProductRef, { title, description, price, image });
+        alert("Product added successfully!");
+        fetchProducts();
+      } catch (error) {
+        console.error("Error adding product:", error);
+      }
+    });
+
+    // Fetch Products
+    async function fetchProducts() {
+      try {
+        const snapshot = await get(child(ref(db), "products"));
+        const products = snapshot.val();
+        const container = document.getElementById("products-container");
+        container.innerHTML = "";
+
+        for (const id in products) {
+          const product = products[id];
+          const card = document.createElement("div");
+          card.classList.add("product-card");
+          card.innerHTML = `
+            <h3>${product.title}</h3>
+            <p>${product.description}</p>
+            <p><strong>Price:</strong> $${product.price}</p>
+            <img src="${product.image}" alt="${product.title}" style="width:100%;height:auto;">
+            <button onclick="deleteProduct('${id}')">Delete</button>
+            <button onclick="updateProduct('${id}')">Update</button>
+          `;
+          container.appendChild(card);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    }
+
+    fetchProducts();
+
+    // Delete Product
+    window.deleteProduct = async (id) => {
+      try {
+        await remove(ref(db, `products/${id}`));
+        alert("Product deleted!");
+        fetchProducts();
+      } catch (error) {
+        console.error("Error deleting product:", error);
+      }
+    };
+
+    // Update Product
+    window.updateProduct = async (id) => {
+      const title = prompt("Enter new title:");
+      const description = prompt("Enter new description:");
+      const price = parseFloat(prompt("Enter new price:"));
+      const image = prompt("Enter new image URL:");
+
+      try {
+        await update(ref(db, `products/${id}`), { title, description, price, image });
+        alert("Product updated!");
+        fetchProducts();
+      } catch (error) {
+        console.error("Error updating product:", error);
+      }
+    };
+
+    // Sign Up
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("signup-email").value;
+      const password = document.getElementById("signup-password").value;
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        alert("User signed up successfully!");
+        console.log("Signed up user:", userCredential.user);
+      } catch (error) {
+        console.error("Error signing up:", error.message);
+        alert(error.message);
+      }
+    });
+
+    // Login
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        alert("User logged in successfully!");
+        console.log("Logged in user:", userCredential.user);
+      } catch (error) {
+        console.error("Error logging in:", error.message);
+        alert(error.message);
+      }
+    });
+
+    // Logout
+    document.getElementById("logout-button").addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+        alert("User logged out!");
+        console.log("User logged out");
+      } catch (error) {
+        console.error("Error logging out:", error.message);
+      }
+    });
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Firebase CRUD Task</h1>
+  </header>
+  <main>
+    <section id="login-section">
+      <h2>Login</h2>
+      <form id="login-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit">Login</button>
+      </form>
+    </section>
+
+    <section id="signup-section">
+      <h2>Sign Up</h2>
+      <form id="signup-form">
+        <input type="email" id="signup-email" placeholder="Email" required>
+        <input type="password" id="signup-password" placeholder="Password" required>
+        <button type="submit">Sign Up</button>
+      </form>
+    </section>
+
+    <button id="logout-button">Logout</button>
+
+    <section id="add-product-section">
+      <h2>Add Product</h2>
+      <form id="add-product-form">
+        <input type="text" id="product-title" placeholder="Title" required>
+        <textarea id="product-description" placeholder="Description" required></textarea>
+        <input type="number" id="product-price" placeholder="Price" required>
+        <input type="text" id="product-image" placeholder="Image URL" required>
+        <button type="submit">Add Product</button>
+      </form>
+    </section>
+
+    <section id="products-section">
+      <h2>Products</h2>
+      <div id="products-container"></div>
+    </section>
+  </main>
+  <footer>
+    <p>© 2025 MyFirebaseTask</p>
+  </footer>
+</body>
+</html>
